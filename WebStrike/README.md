@@ -2,8 +2,6 @@
 
 > **CyberDefenders · Network Forensics · Wireshark · Easy**  
 > [Challenge: WebStrike](https://cyberdefenders.org/blueteam-ctf-challenges/webstrike/)
->
-> **Evidence provenance:** The findings below are based on **user-supplied Wireshark screenshots, exported Conversations data, and copied Follow Stream text**. The original PCAP has not been supplied here for independent replay. Stream numbers, frames, payload contents and the timeline are transcribed from those exhibits; uninspected traffic is labelled accordingly. The pasted stream 13 transcript reports a 393-byte capture gap, so it is not a lossless record of that connection. Stream 14 has now been inspected through Wireshark screenshots, showing its request, an 11-byte body and the server’s HTTP 501 response. The geolocation result is lab-confirmed but its lookup source is not recorded.
 
 ## Case at a glance
 
