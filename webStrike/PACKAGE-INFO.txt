@@ -1,0 +1,8 @@
+WebStrike — publication package
+
+README.md: GitHub walkthrough
+preview.html: fully self-contained HTML preview (open directly in a browser)
+assets/: screenshots referenced by README.md
+evidence/: exported Wireshark stream transcripts
+
+The HTML preview includes embedded image data and a collapsible appendix of all transcripts, so it opens without additional files or an internet connection.

