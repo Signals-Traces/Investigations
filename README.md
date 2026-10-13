@@ -9,3 +9,6 @@ Technical walkthroughs of security investigations and lab exercises. The notes c
 
 - **[WebStrike — Web exploitation and network forensics](webStrike/README.md)**  
   CyberDefenders · Wireshark PCAP analysis, HTTP file-upload validation bypass, PHP reverse shell, TCP stream reconstruction, and data exfiltration analysis.
+
+  - **[FalconEye — Active Directory compromise investigation](falconeye/README.md)**  
+  CyberDefenders · Splunk, Windows/Sysmon telemetry, BloodHound, service-path hijacking, Rubeus/Mimikatz, Kerberos delegation, WinRM, and ticket forging.
