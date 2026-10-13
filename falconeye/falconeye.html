@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a1320">
+<meta name="description" content="FalconEye: A Splunk-driven Windows Active Directory DFIR investigation with evidence, queries, process correlation and explanatory theory.">
+<title>FalconEye — Active Directory compromise investigation</title>
+<style>
+:root{--bg:#08111e;--sidebar:#0d1929;--panel:#101f30;--raised:#152637;--line:#263b4f;--text:#e1eaf0;--sub:#bacbd7;--muted:#8ca5b7;--teal:#72dbcf;--gold:#efc27b;--radius:10px}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:26px}
+body{margin:0;background:radial-gradient(ellipse at 76% 0%,#153141 0%,#08111e 31%,#08111e 100%);color:var(--text);font:15px/1.77 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+a{color:#83d9d1}a:hover{color:#c9fffa}
+.side{position:fixed;z-index:3;inset:0 auto 0 0;width:275px;background:var(--sidebar);border-right:1px solid var(--line);padding:27px 15px;overflow:auto;scrollbar-width:thin}
+.brand{display:flex;gap:12px;align-items:center;padding:5px 11px 25px;border-bottom:1px solid var(--line);font-weight:850;letter-spacing:.05em;font-size:14px;text-decoration:none;color:var(--text)}
+.symbol{width:36px;height:36px;border:1px solid #3b8d8a;border-radius:10px;display:grid;place-items:center;font-size:24px;color:var(--teal)}
+.brand small{font-size:9px;color:var(--muted);letter-spacing:.16em;display:block;margin-top:3px}
+.nav-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin:26px 13px 12px}
+.nav-link{display:flex;gap:12px;align-items:flex-start;border:1px solid transparent;border-radius:7px;padding:8px 10px;line-height:1.45;color:#aec3d1;text-decoration:none;font-size:12px}
+.nav-link .num{font-size:10px;min-width:22px;padding-top:2px;color:#608697;font-weight:750}
+.nav-link:hover,.nav-link.active{background:#172b3c;border-color:#2d4b56;color:#f1fffc}
+.nav-link.active .num{color:var(--teal)}
+.sidebar-bottom{color:#8299a8;font-size:11px;line-height:1.7;border-top:1px solid var(--line);padding:21px 13px;margin-top:26px}
+.main{margin-left:275px;padding:0 clamp(24px,5vw,93px) 70px}.shell{max-width:1030px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px 0 21px;border-bottom:1px solid var(--line)}
+.crumb{text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:750;color:#8fa9b9}
+.controls{display:flex;gap:10px;align-items:center}button{font:inherit;cursor:pointer}
+.print{background:transparent;color:#bfd2db;border:1px solid #3e5869;border-radius:6px;padding:7px 11px;font-size:11px}.print:hover{border-color:var(--teal);color:var(--teal)}
+.hero{padding:66px 0 43px;border-bottom:1px solid var(--line)}
+.kicker{color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}
+.hero h1{font-size:clamp(36px,4.4vw,63px);letter-spacing:-.055em;line-height:1.13;margin:18px 0 20px;font-weight:760;max-width:900px}
+.hero h1 span{color:var(--teal)}.deck{color:#aec4d1;font-size:16px;line-height:1.75;max-width:770px}
+.tags{display:flex;gap:10px;flex-wrap:wrap;margin-top:27px}
+.tag{border:1px solid #2d5361;padding:8px 12px;border-radius:5px;color:#a9c6cf;font-size:10px;font-weight:750;letter-spacing:.08em}
+.tag b{color:#eef4f7;margin-left:6px}
+.mobile-jump{display:none;background:#122338;color:#d9eeef;padding:10px;border:1px solid #375568;border-radius:7px;width:100%;margin:18px 0}
+.content{padding-top:24px;min-width:0}.content>h1{display:none}
+.content h2{font-size:clamp(25px,2.5vw,34px);letter-spacing:-.037em;line-height:1.24;color:#f1f7fb;border-top:1px solid var(--line);margin:67px 0 21px;padding-top:36px;scroll-margin-top:23px}
+.content h2:first-of-type{margin-top:20px}
+.content h3{font-size:19px;letter-spacing:-.025em;color:#eaf5f7;line-height:1.4;margin:34px 0 11px;scroll-margin-top:23px}
+.content p{color:#c4d4de;margin:14px 0 20px}.content li{color:#c8d6e0;margin:5px 0}
+.content ul,.content ol{padding-left:22px;margin:15px 0 25px}
+.content strong{color:#f0f4f6}.content em{color:#b5d4d4}
+.content hr{border:none;border-top:1px solid #254053;margin:48px 0 18px}
+.content :not(pre)>code{font: .91em/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;color:#c2f0e8;background:#122c37;border:1px solid #264c51;padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.content pre{position:relative;background:#070f1b;border:1px solid #254052;border-radius:10px;padding:27px 20px 17px;margin:19px 0 26px;overflow:auto;scrollbar-width:thin;box-shadow:0 13px 35px #0003}
+.content pre code{font:12.4px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;color:#b9e5df;white-space:pre}
+.content pre:before{content:attr(data-lang);position:absolute;right:68px;top:7px;font-size:9px;letter-spacing:.1em;font-weight:800;color:#648995}
+.copy-code{position:absolute;right:9px;top:7px;background:#172b3b;border:1px solid #2a5361;border-radius:5px;padding:3px 8px;font-size:10px;color:#bdcfd6}
+.copy-code:hover{border-color:var(--teal);color:var(--teal)}
+.table-wrap{width:100%;overflow:auto;margin:18px 0 30px;border:1px solid var(--line);border-radius:9px;background:#0d1b2a}
+.content table{border-collapse:collapse;width:100%;min-width:530px;font-size:12.3px;line-height:1.55}
+.content thead{background:#182c3e}.content th{color:var(--teal);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:850;padding:12px 13px}
+.content td{vertical-align:top;padding:12px 13px;border-top:1px solid #24394b;color:#c4d5df}
+.content tbody tr:nth-child(even){background:#102131}
+.content td code{font-size:11px!important}
+.evidence{background:#132338;padding:9px;border:1px solid #335068;border-radius:10px;margin:25px 0 30px}
+.evidence a{display:block;overflow:hidden;border-radius:5px;background:#fff}
+.evidence img{display:block;width:100%;height:auto;max-width:100%}
+.evidence figcaption{display:flex;justify-content:space-between;gap:14px;color:#9db1c2;font-size:11px;padding:12px 6px 2px}
+.evidence figcaption span{color:var(--teal);white-space:nowrap}
+.backtop{margin-top:55px;padding-top:23px;border-top:1px solid var(--line);font-size:11px;color:#8fa8b9;display:flex;justify-content:space-between;gap:15px}
+#lightbox{display:none;position:fixed;inset:0;background:#03080df2;z-index:100;align-items:center;justify-content:center;padding:56px 24px 24px;cursor:zoom-out}
+#lightbox.open{display:flex}#lightbox img{max-height:100%;max-width:100%;object-fit:contain;box-shadow:0 15px 45px #000a}
+#lightbox button{position:absolute;right:20px;top:12px;border:1px solid #567080;border-radius:7px;background:#1c303f;color:white;font-size:18px;padding:2px 12px}
+#toast{position:fixed;bottom:20px;right:20px;background:#244348;border:1px solid #48887a;color:#e3faf6;padding:9px 15px;border-radius:7px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}#toast.show{opacity:1}
+@media(max-width:1100px){.side{width:245px}.main{margin-left:245px;padding-left:40px;padding-right:40px}}
+@media(max-width:850px){.side{display:none}.main{margin:0;padding:0 25px 55px}.mobile-jump{display:block}.hero{padding-top:40px}.content h2{margin-top:45px}}
+@media(max-width:520px){body{font-size:14px}.main{padding:0 17px 55px}.hero h1{font-size:37px}.deck{font-size:14px}.top{flex-wrap:wrap}.tag{font-size:9px}.evidence figcaption{display:block}.evidence figcaption span{display:block;margin-top:3px}.content td,.content th{padding:9px}}
+@media print{.side,.controls,.mobile-jump,.copy-code,#lightbox,#toast{display:none!important}.main{margin:0;padding:0}.hero{padding:15px 0}body{background:white;color:#1c2632}.content p,.content li,.content td{color:#273b45}.content h2,.content h3,.hero h1{color:#091a25}.content pre{background:#f1f5f7;box-shadow:none}.content pre code{color:#20323c}.table-wrap,.evidence{break-inside:avoid}}
+</style></head>
+<body><aside class="side" aria-label="Section navigation">
+<a href="#top" class="brand"><span class="symbol">⌁</span><span>SIGNALS &amp; TRACES<small>SECURITY INVESTIGATIONS</small></span></a>
+<div class="nav-label">FalconEye chapters</div><nav><a class="nav-link" href="#1-environment-and-telemetry"><span class="num">01</span><span>Environment &amp; telemetry</span></a>
+<a class="nav-link" href="#2-attack-timeline"><span class="num">02</span><span>Attack timeline</span></a>
+<a class="nav-link" href="#3-newcredentials-logons--finding-the-initial-account-and-host"><span class="num">03</span><span>NewCredentials logons</span></a>
+<a class="nav-link" href="#4-bloodhound-powershell-enumeration"><span class="num">04</span><span>AD enumeration</span></a>
+<a class="nav-link" href="#5-unquoted-service-path-and-privilege-escalation"><span class="num">05</span><span>Service-path hijack</span></a>
+<a class="nav-link" href="#6-executable-hashes-and-payload-staging"><span class="num">06</span><span>Hashes &amp; payloads</span></a>
+<a class="nav-link" href="#7-mimikatz-execution-and-dcsync"><span class="num">07</span><span>Mimikatz &amp; DCSync</span></a>
+<a class="nav-link" href="#8-kerberos-key-reuse-mohammed-and-it-support"><span class="num">08</span><span>Kerberos key reuse</span></a>
+<a class="nav-link" href="#9-kerberos-delegation-abuse-targeting-client03"><span class="num">09</span><span>Delegation abuse</span></a>
+<a class="nav-link" href="#10-confirming-winrm-execution-on-client03"><span class="num">10</span><span>WinRM correlation</span></a>
+<a class="nav-link" href="#11-forged-tickets-and-access-to-the-parent-domain"><span class="num">11</span><span>Cross-domain tickets</span></a>
+<a class="nav-link" href="#12-investigation-results-and-remaining-uncertainties"><span class="num">12</span><span>Results &amp; limits</span></a>
+<a class="nav-link" href="#13-technical-references"><span class="num">13</span><span>Sources &amp; references</span></a></nav>
+<div class="sidebar-bottom">SPLUNK / WINDOWS / ACTIVE DIRECTORY<br>8–10 MAY 2023<br><br>Technical investigation &amp; evidence interpretation</div>
+</aside>
+<main class="main" id="top"><div class="shell">
+<div class="top"><span class="crumb">Investigations / Active Directory / FalconEye</span><div class="controls"><button id="print" class="print" type="button">Print</button></div></div>
+<header class="hero"><div class="kicker">CyberDefenders · Splunk SIEM · DFIR</div>
+<h1>FalconEye <span>—</span><br>Active Directory compromise investigation</h1>
+<div class="deck">Reconstructing credential attacks, privilege escalation, Kerberos delegation abuse, and cross-domain ticket forging through Windows Security, Sysmon and PowerShell evidence.</div>
+<div class="tags"><span class="tag">DATASET <b>FOLKS</b></span><span class="tag">PRIMARY HOST <b>CLIENT02</b></span><span class="tag">PERIOD <b>8–10 MAY 2023</b></span></div>
+</header>
+<select class="mobile-jump" aria-label="Jump to a chapter" id="mobile-jump"><option value="">Jump to a section…</option><option value="#1-environment-and-telemetry">Environment &amp; telemetry</option><option value="#2-attack-timeline">Attack timeline</option><option value="#3-newcredentials-logons--finding-the-initial-account-and-host">NewCredentials logons</option><option value="#4-bloodhound-powershell-enumeration">AD enumeration</option><option value="#5-unquoted-service-path-and-privilege-escalation">Service-path hijack</option><option value="#6-executable-hashes-and-payload-staging">Hashes &amp; payloads</option><option value="#7-mimikatz-execution-and-dcsync">Mimikatz &amp; DCSync</option><option value="#8-kerberos-key-reuse-mohammed-and-it-support">Kerberos key reuse</option><option value="#9-kerberos-delegation-abuse-targeting-client03">Delegation abuse</option><option value="#10-confirming-winrm-execution-on-client03">WinRM correlation</option><option value="#11-forged-tickets-and-access-to-the-parent-domain">Cross-domain tickets</option><option value="#12-investigation-results-and-remaining-uncertainties">Results &amp; limits</option><option value="#13-technical-references">Sources &amp; references</option></select>
+<article class="content"><h1>FalconEye — Active Directory compromise investigation</h1>
+
+<p>An Active Directory intrusion traced through process creation, PowerShell script blocks, Windows logon sessions, Kerberos ticket requests, and execution on a second workstation. The available evidence shows AD reconnaissance, service-path interception, Mimikatz and Rubeus activity, credential misuse, and remote execution. Each conclusion below follows from the recorded events; attempted actions are distinguished from confirmed outcomes.</p>
+<p><a href="https://cyberdefenders.org/blueteam-ctf-challenges/falconeye/">CyberDefenders — FalconEye</a> · <a href="references/windows-ad-tools.md">Windows/AD tool recognition reference</a></p>
+<h2 id="1-environment-and-telemetry">1. Environment and telemetry</h2>
+<p>Splunk's Data Summary shows five Windows hosts: <code>ALI</code>, <code>ABDULLAH</code>, <code>CLIENT01</code>, <code>CLIENT02</code>, and <code>CLIENT03</code>. The Windows data resides in <strong><code>index=folks</code></strong>, with sources for Security, Sysmon, PowerShell Operational, System, and Application logs. <code>ABDULLAH</code> records child-domain controller authentication events; the attacker later targets the parent domain <code>Ali.Alhakami</code>.</p>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Splunk Data Summary: available Windows event channels" data-lightbox="true" href="images/01-log-sources.png"><img alt="Splunk Data Summary: available Windows event channels" loading="lazy" src="images/01-log-sources.png"/></a><figcaption>Splunk Data Summary: available Windows event channels<span>↗ Enlarge</span></figcaption></figure>
+<p>Initial searches establish the index and event coverage:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">| eventcount summarize=false index=*
+</code></pre>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks
+| stats count min(_time) as first_seen max(_time) as last_seen by host source
+| convert ctime(first_seen) ctime(last_seen)
+| sort host source
+</code></pre>
+<p>The central event types are:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Event source</th>
+<th style="text-align:right">Event ID</th>
+<th>Investigative purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows Security</td>
+<td style="text-align:right">4624</td>
+<td>Logon success, type, identity, logon-session ID</td>
+</tr>
+<tr>
+<td>Windows Security</td>
+<td style="text-align:right">4768</td>
+<td>Kerberos TGT request on a domain controller</td>
+</tr>
+<tr>
+<td>Windows Security</td>
+<td style="text-align:right">4769</td>
+<td>Kerberos service-ticket request on a domain controller</td>
+</tr>
+<tr>
+<td>PowerShell Operational</td>
+<td style="text-align:right">4104</td>
+<td>PowerShell script-block content</td>
+</tr>
+<tr>
+<td>Sysmon Operational</td>
+<td style="text-align:right">1</td>
+<td>Process image, command line, parent, user, hashes, Logon ID</td>
+</tr>
+<tr>
+<td>Sysmon Operational</td>
+<td style="text-align:right">11</td>
+<td>File creation/overwrite and writing process</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Timestamp handling.</strong> Times in the tables below follow Splunk's displayed <code>_time</code> for the lab. Sysmon also includes <code>UtcTime</code> and the event XML has <code>TimeCreated</code>. Two 10 May <code>program.exe</code> records show <code>UtcTime</code> around <strong>04:57:08</strong> but XML <code>TimeCreated</code> around <strong>04:57:36</strong>; the precise field is called out wherever relevant.</p>
+<hr/>
+<h2 id="2-attack-timeline">2. Attack timeline</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Date / time</th>
+<th>Host</th>
+<th>Recorded event</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8 May, 07:03–07:09</td>
+<td>ABDULLAH</td>
+<td>Security 4624</td>
+<td>Six Type 9 logons for <code>Administrator</code> using <code>Advapi</code>; distinct from the later <code>seclogo</code> set.</td>
+</tr>
+<tr>
+<td>9 May, 12:25:36 / 12:25:45</td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td><code>C:\program.exe</code> executes as SYSTEM from <code>services.exe</code>, hash <code>F951…A2EA</code>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 03:28:41</strong></td>
+<td>CLIENT02</td>
+<td>PowerShell 4104</td>
+<td><code>Invoke-BloodHound</code> function appears in a script block.</td>
+</tr>
+<tr>
+<td><strong>10 May, ~04:57:08</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1 (<code>UtcTime</code>)</td>
+<td>Service-path interception again launches <code>C:\program.exe</code> as SYSTEM, now hash <code>8ACC…5BD2</code>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 05:08:57</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 11</td>
+<td>PowerShell creates <code>C:\Users\HelpDesk\fun.exe</code>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 05:10:30</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td><code>fun.exe</code>, whose metadata identifies Mimikatz, is executed by HelpDesk.</td>
+</tr>
+<tr>
+<td><strong>10 May, 05:49:10</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td>Rubeus-like <code>asktgt /user:Mohammed /aes256:… /createnetonly:… /ptt</code>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 05:49:11</strong></td>
+<td>ABDULLAH / CLIENT02</td>
+<td>Security 4768 / 4624</td>
+<td>Successful Mohammed TGT issuance; initial observed HelpDesk Type 9 <code>seclogo</code> session.</td>
+</tr>
+<tr>
+<td><strong>10 May, 06:18:19</strong></td>
+<td>CLIENT02 / ABDULLAH</td>
+<td>Sysmon 1 / Security 4769</td>
+<td>S4U command impersonates Administrator toward <code>HTTP/Client03</code>; two successful TGS events for <code>Client02$</code>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 06:21:44</strong></td>
+<td>CLIENT03</td>
+<td>Security 4624 + Sysmon 1</td>
+<td>Kerberos Type 3 Administrator logon and <code>wsmprovhost.exe</code> in the <strong>same Logon ID</strong>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 06:49:48</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1 + Security 4624</td>
+<td>Rubeus-style TGT request for <code>it-support</code> and Type 9 <code>seclogo</code> session.</td>
+</tr>
+<tr>
+<td><strong>10 May, 07:16–07:19</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td>Repeated Rubeus-style <code>asktgt</code> requests for Administrator with AES256 keys.</td>
+</tr>
+<tr>
+<td><strong>10 May, 07:36:07</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td>SafetyKatz <code>kerberos::golden</code> command specifies <code>trust_tgt.kirbi</code> for the parent domain.</td>
+</tr>
+<tr>
+<td><strong>10 May, 07:44:42 / 07:51:24</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td>Further ticket-forging commands reference <code>trust_tgt.kirbi</code> and <code>trust-test2.kirbi</code>.</td>
+</tr>
+<tr>
+<td><strong>10 May, 08:09:36</strong></td>
+<td>CLIENT02</td>
+<td>Sysmon 1</td>
+<td><code>fun.exe</code> is launched with <code>lsadump::dcsync /user:Abdullah-work\Administrator</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The timeline is <strong>not</strong> an assertion that every observed event is malicious. The exploit-related events on 9 May and other earlier ticket requests need to be interpreted in context, not silently assigned to a single continuous attacker session.</p>
+<hr/>
+<h2 id="3-newcredentials-logons--finding-the-initial-account-and-host">3. NewCredentials logons — finding the initial account and host</h2>
+<p>A broad search for successful logons returned thousands of events. Restricting to <strong>Logon Type 9</strong> produced 12 events across two hosts:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks EventCode=4624 Logon_Type=9
+| table _time host TargetDomainName TargetUserName LogonProcessName \
+        TargetOutboundUserName TargetOutboundDomainName SubjectLogonId TargetLogonId
+| sort _time
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Account</th>
+<th style="text-align:right">Count</th>
+<th>Logon process</th>
+<th>Observed dates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ABDULLAH</td>
+<td><code>Abdullah-work\Administrator</code></td>
+<td style="text-align:right">6</td>
+<td><code>Advapi</code></td>
+<td>8 May</td>
+</tr>
+<tr>
+<td>CLIENT02</td>
+<td><strong><code>Abdullah-work\HelpDesk</code></strong></td>
+<td style="text-align:right"><strong>6</strong></td>
+<td><strong><code>seclogo</code></strong></td>
+<td>10 May</td>
+</tr>
+</tbody>
+</table></div>
+<p>The earliest matching <strong><code>seclogo</code></strong> event occurred on <strong>10 May at 05:49:11</strong>, on <strong>CLIENT02</strong>. The earlier <code>Advapi</code> events should not be mistaken for the initial <code>seclogo</code>-based activity.</p>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Security 4624 raw XML on CLIENT02, including Type 9, seclogo and the HelpDesk account" data-lightbox="true" href="images/02-type9-evidence.png"><img alt="Security 4624 raw XML on CLIENT02, including Type 9, seclogo and the HelpDesk account" loading="lazy" src="images/02-type9-evidence.png"/></a><figcaption>Security 4624 raw XML on CLIENT02, including Type 9, seclogo and the HelpDesk account<span>↗ Enlarge</span></figcaption></figure>
+<h3 id="why-type-9-matters">Why Type 9 matters</h3>
+<p><strong>Type 9 — NewCredentials</strong> creates a local security session while allowing separate credentials for later outbound connections. It is used legitimately by mechanisms such as <code>runas /netonly</code>. Its creation does <strong>not</strong> show that a remote machine accepted those credentials.</p>
+<p>In the six HelpDesk events, the local account remains <code>HelpDesk</code>, but <code>TargetOutboundUserName</code> and <code>TargetOutboundDomainName</code> contain different seemingly generated values, for example:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">05:49:11  QSBL8AO5\DL7KFQY9
+06:49:48  ZFF9NC8E\LZMMWK9A
+07:15:17  3FSA5T4D\E7G29SPP
+</code></pre>
+<p>Such placeholder-like values are compatible with tooling that creates a NewCredentials session before manipulating network authentication material. They are <strong>not proof</strong> of NTLM pass-the-hash. <code>AuthenticationPackageName=Negotiate</code> is likewise not proof that NTLM was selected.</p>
+<p><strong>Logon-session linkage:</strong> The Type 9 event at 06:49:48 creates <code>TargetLogonId=0x504b8b</code>. A later Type 9 event at 07:15:17 has <code>SubjectLogonId=0x504b8b</code>, showing that the earlier session initiated another session. The process command lines discussed below provide further context for the <code>seclogo</code> events.</p>
+<hr/>
+<h2 id="4-bloodhound-powershell-enumeration">4. BloodHound PowerShell enumeration</h2>
+<p>On <strong>10 May at 03:28:41</strong>, CLIENT02 recorded a PowerShell <strong>Event ID 4104</strong> script block containing <code>function Invoke-BloodHound</code> and text describing a C# ingestor loaded in memory through reflection.</p>
+<p>First inspect script-block telemetry:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=4104
+</code></pre>
+<p>This produced <strong>464 events</strong>. Narrow to a distinctive tool signature:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=4104
+| search ScriptBlockText="*bloodhound*"
+| table _time ScriptBlockText
+</code></pre>
+<p>The relevant script includes:</p>
+<pre data-lang="POWERSHELL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-powershell">function Invoke-BloodHound {
+    &lt;#
+    .SYNOPSIS
+    Runs the BloodHound C# Ingestor using reflection.
+    #&gt;
+}
+</code></pre>
+<p><em>The excerpt shows identifying lines, not the complete function implementation.</em></p>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: PowerShell 4104 script-block evidence for Invoke-BloodHound" data-lightbox="true" href="images/03-bloodhound-4104.png"><img alt="PowerShell 4104 script-block evidence for Invoke-BloodHound" loading="lazy" src="images/03-bloodhound-4104.png"/></a><figcaption>PowerShell 4104 script-block evidence for Invoke-BloodHound<span>↗ Enlarge</span></figcaption></figure>
+<h3 id="the-tools-and-their-roles">The tools and their roles</h3>
+<p><strong>BloodHound</strong> models AD object relationships and potential attack paths; <strong>SharpHound</strong> collects the data. In older collection workflows, <code>Invoke-BloodHound</code> provides a PowerShell wrapper around the C# ingestor. Other tools worth recognising include <strong>PowerView</strong> (PowerShell AD enumeration) and <strong>ADRecon</strong> (broader AD configuration collection).</p>
+<p>When the tool name is unknown, investigate behaviour first: LDAP queries, <code>DirectorySearcher</code>, directory-related PowerShell functions, and enumeration of groups, users, trusts, sessions, or ACLs. Function names and code comments then help identify a particular toolkit.</p>
+<p><strong>Evidence boundary:</strong> Event 4104 confirms the script-block content was processed by PowerShell; a logged function <em>definition</em> alone does not prove <code>Invoke-BloodHound</code> was called or that collection completed.</p>
+<hr/>
+<h2 id="5-unquoted-service-path-and-privilege-escalation">5. Unquoted service path and privilege escalation</h2>
+<p>A distinctive Sysmon pattern on CLIENT02 shows a <strong>different image executing from the command line's intended executable path</strong>.</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 CommandLine="C:\\Program Files\\*"
+NOT Image="C:\\Program Files\\*"
+| stats count by Image CommandLine
+</code></pre>
+<p>The search yielded four executions with the same discrepancy:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">Image           C:\program.exe
+CommandLine     C:\Program Files\Basic Monitoring\Automate-Basic-Monitoring.exe
+ParentImage     C:\Windows\System32\services.exe
+User            NT AUTHORITY\SYSTEM
+IntegrityLevel  System
+</code></pre>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Image versus CommandLine: execution through an ambiguous unquoted service path" data-lightbox="true" href="images/04-unquoted-path.png"><img alt="Image versus CommandLine: execution through an ambiguous unquoted service path" loading="lazy" src="images/04-unquoted-path.png"/></a><figcaption>Image versus CommandLine: execution through an ambiguous unquoted service path<span>↗ Enlarge</span></figcaption></figure>
+<h3 id="why-an-unquoted-path-is-dangerous">Why an unquoted path is dangerous</h3>
+<p>If a service's executable path contains spaces but is not enclosed in quotes, Windows may resolve an unintended executable before the intended one. For example, an unquoted path:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">C:\Program Files\Basic Monitoring\Automate-Basic-Monitoring.exe
+</code></pre>
+<p>may result in Windows looking for candidates including:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">C:\Program.exe
+C:\Program Files\Basic.exe
+C:\Program Files\Basic Monitoring\Automate-Basic-Monitoring.exe
+</code></pre>
+<p>If an attacker can write a matching executable at an earlier candidate path and trigger a service launch, it can run with the service's privileges. Here the recorded parent is <code>services.exe</code> and <strong>the actual executed image</strong> is <code>C:\program.exe</code> with <strong>SYSTEM</strong> integrity. That is much stronger evidence of successful path interception than merely observing a potentially vulnerable unquoted configuration.</p>
+<p><strong>Service-name limitation:</strong> The log proves the affected <strong>configured binary path</strong>, not the registered Windows <em>service name</em>. The actual service name was not established from the shared service-configuration evidence; it would require correlation with service records (for example System 7045, when applicable, or <code>HKLM\SYSTEM\CurrentControlSet\Services\…\ImagePath</code>). An executable filename and a service name are not interchangeable.</p>
+<hr/>
+<h2 id="6-executable-hashes-and-payload-staging">6. Executable hashes and payload staging</h2>
+<h3 id="two-file-contents-at-cprogramexe">Two file contents at <code>C:\program.exe</code></h3>
+<p>Four Sysmon Event ID 1 records show the same image path on different dates with <strong>different SHA-256 values</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Executions</th>
+<th>SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>9 May, 12:25:36 and 12:25:45</td>
+<td><code>F951F9FE207C2D9E412240BD0AEFF7233AB78712063EB1723DFAAA3B74BAA2EA</code></td>
+</tr>
+<tr>
+<td>10 May, ~04:57</td>
+<td><strong><code>8ACC5D98CFFE8FE7D85DE218971B18D49166922D079676729055939463555BD2</code></strong></td>
+</tr>
+</tbody>
+</table></div>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=1 Image="C:\\program.exe"
+| rex field=Hashes "SHA256=(?&lt;sha256&gt;[A-Fa-f0-9]{64})"
+| table _time UtcTime Image CommandLine ParentImage User IntegrityLevel sha256
+| sort _time
+</code></pre>
+<p>A cryptographic hash fingerprints <strong>file contents, not a file path</strong>. These events establish that the executable contents differed; they do not tell us whether the binary was replaced, patched, or rebuilt. Both samples also share an <strong>IMPHASH</strong> (<code>B093B9B6223AF7F9E72D34D8765AA77F</code>), reflecting similar PE import characteristics rather than identical file contents.</p>
+<h3 id="funexe--creation-versus-execution"><code>fun.exe</code>: creation versus execution</h3>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=11 TargetFilename="*fun.exe"
+| table _time Image TargetFilename
+| sort _time
+</code></pre>
+<p>At <strong>10 May, 05:08:57</strong>, Sysmon Event ID 11 recorded <code>powershell.exe</code> creating <code>C:\Users\HelpDesk\fun.exe</code>.</p>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Sysmon FileCreate: PowerShell creates fun.exe" data-lightbox="true" href="images/05-fun-filecreate.png"><img alt="Sysmon FileCreate: PowerShell creates fun.exe" loading="lazy" src="images/05-fun-filecreate.png"/></a><figcaption>Sysmon FileCreate: PowerShell creates fun.exe<span>↗ Enlarge</span></figcaption></figure>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=1 Image="*fun.exe"
+| table _time Image CommandLine OriginalFileName Description Product User ParentImage Hashes
+| sort _time
+</code></pre>
+<p>The first observed execution is <strong>05:10:30</strong>, approximately <strong>93 seconds after file creation</strong>. PE metadata identifies:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">Image             C:\Users\HelpDesk\fun.exe
+OriginalFileName  mimikatz.exe
+Description       mimikatz for Windows
+Product           mimikatz
+ParentImage       ...\powershell.exe
+User              Abdullah-work\HelpDesk
+SHA256            CFD90BF9CB627FB3574096B9D1C33522A46DB7412CD0FF42226474BF6A74CD77
+</code></pre>
+<p><strong>Sysmon 11 answers when a file appeared on disk; Sysmon 1 answers when it ran.</strong> A FileCreate event is not by itself proof of an internet download—it may also represent a copy, extraction, or local write. The executable metadata is useful for recognising a renamed tool, but it can be changed by an adversary.</p>
+<hr/>
+<h2 id="7-mimikatz-execution-and-dcsync">7. Mimikatz execution and DCSync</h2>
+<p>The attacker repeatedly executed the renamed <code>fun.exe</code> as HelpDesk. The command lines for earlier executions contain only the executable name; the <strong>08:09:36</strong> process creation event records an explicit command:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=1 Image="*fun.exe"
+| table _time Image CommandLine User ParentImage
+| sort _time
+</code></pre>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Mimikatz executions: final command line includes lsadump::dcsync" data-lightbox="true" href="images/06-mimikatz-dcsync.png"><img alt="Mimikatz executions: final command line includes lsadump::dcsync" loading="lazy" src="images/06-mimikatz-dcsync.png"/></a><figcaption>Mimikatz executions: final command line includes lsadump::dcsync<span>↗ Enlarge</span></figcaption></figure>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">"C:\Users\HelpDesk\fun.exe" "lsadump::dcsync /user:Abdullah-work\Administrator"
+</code></pre>
+<p><strong><code>lsadump::dcsync</code></strong> is Mimikatz's command for requesting AD credential secrets using directory replication mechanisms. The <code>/user:</code> argument specifies the account whose secrets are requested. DCSync generally requires sufficiently privileged replication permissions; it does not require launching Mimikatz directly on the domain controller.</p>
+<p><strong>What the event proves:</strong> the program was started with a DCSync command directed at <code>Abdullah-work\Administrator</code>. It does not independently establish that the domain controller returned the secrets. Corroboration may include appropriately configured Security <strong>4662</strong> auditing of replication-access rights and directory replication evidence. Interactive commands typed after launching Mimikatz are not normally captured by Sysmon Event 1, which records the <em>process launch</em> command line.</p>
+<p><strong>Mimikatz in context.</strong> It is a credential and Kerberos manipulation toolkit, not a synonym for all malware. Key capabilities include LSASS credential access (<code>sekurlsa::logonpasswords</code>), pass-the-hash or pass-the-key (<code>sekurlsa::pth</code>), directory replication abuse (<code>lsadump::dcsync</code>), ticket import (<code>kerberos::ptt</code>), and ticket forging (<code>kerberos::golden</code>). See the <a href="references/windows-ad-tools.md">tool recognition reference</a>.</p>
+<hr/>
+<h2 id="8-kerberos-key-reuse-mohammed-and-it-support">8. Kerberos key reuse: Mohammed and it-support</h2>
+<p>A process labelled <code>Microsoft-Update.exe</code>, executed under <code>Abdullah-work\HelpDesk</code>, used <strong>Rubeus-style</strong> command syntax to request Kerberos tickets with stolen or otherwise supplied AES256 key material.</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=1
+| search CommandLine="*asktgt*"
+| table _time Image User CommandLine
+| sort _time
+</code></pre>
+<p>Observed activity includes:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Time, 10 May</th>
+<th>Target identity</th>
+<th>Relevant command arguments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>05:49:10</strong></td>
+<td><strong>Mohammed</strong></td>
+<td><code>asktgt /user:Mohammed /aes256:… /opsec /createnetonly:… /ptt</code></td>
+</tr>
+<tr>
+<td>06:49:48</td>
+<td>it-support</td>
+<td><code>asktgt /user:it-support /aes256:… /opsec /createnetonly:… /ptt</code></td>
+</tr>
+<tr>
+<td>07:16:39 onward</td>
+<td>Administrator</td>
+<td>Multiple <code>asktgt /user:Administrator /aes256:…</code> attempts</td>
+</tr>
+</tbody>
+</table></div>
+<p>For the first observed Mohammed command, the AES256 key specified in the process arguments is:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">facca59ab6497980cbb1f8e61c446bdbd8645166edd83dac0da2037ce954d379
+</code></pre>
+<h3 id="helpdesk-is-the-operator-context-mohammed-is-the-target-credential-identity">HelpDesk is the operator context; Mohammed is the target credential identity</h3>
+<p><code>User=Abdullah-work\HelpDesk</code> in Sysmon identifies who ran the process locally. <code>/user:Mohammed</code> identifies whose Kerberos ticket Rubeus attempted to obtain. These accounts play different roles. A recorded command does not imply Mohammed personally operated CLIENT02.</p>
+<p>Rubeus <code>asktgt</code> requests a TGT; <code>/aes256</code> supplies a Kerberos AES key; <code>/createnetonly</code> creates a NewCredentials process; <code>/ptt</code> requests that the ticket be imported. At <strong>05:49:11</strong>, one second after the command, CLIENT02 recorded a Type 9 <code>seclogo</code> session. The same pattern appears for <strong>it-support</strong> at <strong>06:49:48</strong>: the local Type 9 event still identifies <strong>HelpDesk</strong>, while the Rubeus command targets <strong>it-support</strong>.</p>
+<h3 id="did-the-mohammed-tgt-request-succeed">Did the Mohammed TGT request succeed?</h3>
+<p>Search the domain controller's <strong>Security 4768</strong> events:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks EventCode=4768 "Mohammed"
+| table _time host user TargetUserName IpAddress Status TicketEncryptionType
+| sort _time
+</code></pre>
+<p>The relevant event at <strong>05:49:11</strong> reports:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">host                  ABDULLAH
+TargetUserName        Mohammed
+IpAddress             ::ffff:192.168.2.101
+Status                0x0
+TicketEncryptionType  0x12
+</code></pre>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Successful 4768 TGT request for Mohammed near the Rubeus execution" data-lightbox="true" href="images/07-mohammed-tgt.png"><img alt="Successful 4768 TGT request for Mohammed near the Rubeus execution" loading="lazy" src="images/07-mohammed-tgt.png"/></a><figcaption>Successful 4768 TGT request for Mohammed near the Rubeus execution<span>↗ Enlarge</span></figcaption></figure>
+<p><code>Status=0x0</code> means the domain controller <strong>issued a TGT for Mohammed</strong>. The exact same-second correlation with the Rubeus command makes a connection likely; it is still useful to validate the source host of <code>192.168.2.101</code> before asserting origin beyond doubt.</p>
+<p><strong>Ticket encryption types:</strong> <code>0x11</code> = AES128, <code>0x12</code> = AES256, <code>0x17</code> = RC4-HMAC. These values in <code>TicketEncryptionType</code> describe the <strong>issued ticket's encryption</strong>, not necessarily the credential or pre-authentication key that the client supplied. An RC4 ticket by itself does not prove pass-the-hash or over-pass-the-hash. The strongest evidence here is the <strong>Rubeus command containing <code>/aes256</code></strong>, corroborated by successful TGT issuance.</p>
+<h3 id="was-mohammeds-ticket-subsequently-used">Was Mohammed's ticket subsequently used?</h3>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks EventCode=4769 "Mohammed"
+| table _time host user ServiceName IpAddress Status TicketEncryptionType
+| sort _time
+</code></pre>
+<p>A successful <strong>4769</strong> at <strong>06:08:14</strong> shows Mohammed requesting a service ticket associated with <strong><code>ABDULLAH$</code></strong>, with <code>Status=0x0</code> and <code>TicketEncryptionType=0x12</code>. That proves service-ticket issuance, <strong>not</strong> use at a destination or that this TGS was obtained with the specific 05:49 TGT. Earlier Mohammed TGTs also appear in the data. Separate 8 May RC4 (<code>0x17</code>) requests involving <code>it-support</code> are worth contextual examination, but not proof of Kerberoasting or direct evidence for the 10 May key-reuse command.</p>
+<p>Mohammed is the <strong>first observed <code>asktgt /aes256</code> identity</strong> in the supplied 10 May command sequence, not the only account whose key is used. <code>it-support</code> and Administrator are subsequently targeted; the exercise's singular wording should not conceal these additional identities.</p>
+<hr/>
+<h2 id="9-kerberos-delegation-abuse-targeting-client03">9. Kerberos delegation abuse targeting CLIENT03</h2>
+<p>The 10 May <strong>06:18:19</strong> Sysmon event on CLIENT02 contains a Rubeus-style <code>s4u</code> command executed as HelpDesk:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT02 EventCode=1
+| search CommandLine="*Client03*"
+| table _time Image User CommandLine
+| sort _time
+</code></pre>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Rubeus S4U command targeting the HTTP service principal on CLIENT03" data-lightbox="true" href="images/08-s4u-client03.png"><img alt="Rubeus S4U command targeting the HTTP service principal on CLIENT03" loading="lazy" src="images/08-s4u-client03.png"/></a><figcaption>Rubeus S4U command targeting the HTTP service principal on CLIENT03<span>↗ Enlarge</span></figcaption></figure>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">"C:\Users\HelpDesk\Microsoft-Update.exe" s4u
+/user:Client02$ /aes256:&lt;key&gt;
+/msdsspn:http/Client03 /impersonateuser:Administrator /ptt
+</code></pre>
+<h3 id="interpreting-the-spn">Interpreting the SPN</h3>
+<p>A <strong>Service Principal Name (SPN)</strong> identifies a Kerberos service, commonly written as <code>service/host</code>. In <code>http/Client03</code>, <code>http</code> is the <strong>service class</strong> and <code>Client03</code> the <strong>target host</strong>. Other frequently encountered SPN service classes include <code>cifs</code> (SMB), <code>ldap</code> (directory service), <code>host</code> (host-associated services) and <code>MSSQLSvc</code> (SQL Server). <code>HTTP</code> is relevant to WinRM because Windows Remote Management uses HTTP or HTTPS as a transport, but the SPN alone does not identify the exact application or prove a connection succeeded.</p>
+<p><code>/user:Client02$</code> selects the machine principal whose key material is supplied; <code>/impersonateuser:Administrator</code> requests S4U ticket operations on behalf of Administrator; <code>/msdsspn:</code> gives the service principal targeted by the delegation workflow. This is strong evidence of an <strong>attempted Kerberos delegation abuse</strong>, without by itself proving a ticket usable as Administrator was obtained.</p>
+<h3 id="domain-controller-corroboration">Domain-controller corroboration</h3>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks EventCode=4769
+ earliest="05/10/2023:06:18:00" latest="05/10/2023:06:23:00"
+| table _time host user ServiceName IpAddress Status TicketEncryptionType
+| sort _time
+</code></pre>
+<p>At <strong>06:18:19</strong>, ABDULLAH recorded two successful service-ticket requests:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Requesting principal</th>
+<th><code>ServiceName</code></th>
+<th>Source IP</th>
+<th>Status</th>
+<th>Ticket encryption</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Client02$@ABDULLAH.ALI.ALHAKAMI</code></td>
+<td><code>CLIENT03$</code></td>
+<td><code>192.168.2.101</code></td>
+<td><code>0x0</code></td>
+<td><code>0x12</code></td>
+</tr>
+<tr>
+<td><code>Client02$@ABDULLAH.ALI.ALHAKAMI</code></td>
+<td><code>CLIENT02$</code></td>
+<td><code>192.168.2.101</code></td>
+<td><code>0x0</code></td>
+<td><code>0x12</code></td>
+</tr>
+</tbody>
+</table></div>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Two successful Kerberos service-ticket requests at the S4U command time" data-lightbox="true" href="images/09-s4u-tgs.png"><img alt="Two successful Kerberos service-ticket requests at the S4U command time" loading="lazy" src="images/09-s4u-tgs.png"/></a><figcaption>Two successful Kerberos service-ticket requests at the S4U command time<span>↗ Enlarge</span></figcaption></figure>
+<p>These events support the S4U sequence by principal, target and timing. The logs show <code>Client02$</code> as the requesting principal, <strong>not</strong> Administrator, and do not alone prove a ticket impersonating Administrator was issued. <code>CLIENT03$</code> is the target <strong>machine account</strong>, whereas <code>HTTP/Client03</code> is the SPN requested by the tool.</p>
+<hr/>
+<h2 id="10-confirming-winrm-execution-on-client03">10. Confirming WinRM execution on CLIENT03</h2>
+<p>The S4U command points toward CLIENT03, but the stronger evidence of <strong>successful remote administrative activity</strong> comes from CLIENT03's own Security and Sysmon events.</p>
+<h3 id="process-evidence">Process evidence</h3>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT03 EventCode=1
+(Image="*wsmprovhost.exe" OR ParentImage="*wsmprovhost.exe")
+| table _time User LogonId Image ParentImage ProcessGuid ParentProcessGuid CommandLine
+| sort _time
+</code></pre>
+<p>The important process creation event is <strong>10 May, 06:21:44</strong>:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">Image          C:\Windows\System32\wsmprovhost.exe
+CommandLine    C:\Windows\system32\wsmprovhost.exe -Embedding
+User           Abdullah-work\Administrator
+IntegrityLevel High
+LogonId        0x23f77d3
+ProcessGuid    {7394e7e8-37f8-645b-8e25-000000000800}
+</code></pre>
+<p>Other results show <strong><code>whoami.exe</code></strong> and <strong><code>HOSTNAME.EXE</code></strong> as children of <code>wsmprovhost.exe</code>, consistent with an operator checking identity and location within a remote PowerShell session.</p>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Remote WinRM-associated process and child process activity on CLIENT03" data-lightbox="true" href="images/10-client03-process-tree.png"><img alt="Remote WinRM-associated process and child process activity on CLIENT03" loading="lazy" src="images/10-client03-process-tree.png"/></a><figcaption>Remote WinRM-associated process and child process activity on CLIENT03<span>↗ Enlarge</span></figcaption></figure>
+<p>At <strong>06:21:45</strong>, Sysmon <strong>11</strong> records that same <code>wsmprovhost.exe</code> instance creating a <code>__PSScriptPolicyTest_*.ps1</code> file in Administrator's temporary directory. The matching <strong><code>ProcessGuid</code></strong> connects the file creation to the process. Such a temporary script policy test can be normal PowerShell behaviour; it is not itself malicious.</p>
+<h3 id="authentication-to-process-correlation">Authentication-to-process correlation</h3>
+<p>Take <code>LogonId=0x23f77d3</code> from the Sysmon process and search CLIENT03's successful logons:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks host=CLIENT03 EventCode=4624 TargetLogonId="0x23f77d3"
+| table _time TargetUserName Logon_Type IpAddress AuthenticationPackageName TargetLogonId
+| sort _time
+</code></pre>
+<p>The matching event at <strong>06:21:44</strong> shows:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Security 4624 field</th>
+<th>Recorded value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TargetUserName</code></td>
+<td><code>Administrator</code></td>
+</tr>
+<tr>
+<td><code>Logon_Type</code></td>
+<td><strong>3 — Network</strong></td>
+</tr>
+<tr>
+<td><code>AuthenticationPackageName</code></td>
+<td><strong>Kerberos</strong></td>
+</tr>
+<tr>
+<td><code>TargetLogonId</code></td>
+<td><strong><code>0x23f77d3</code></strong></td>
+</tr>
+<tr>
+<td><code>IpAddress</code></td>
+<td><code>-</code> (not populated)</td>
+</tr>
+</tbody>
+</table></div>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: CLIENT03 4624 Type 3 Kerberos Administrator session matching the Sysmon process LogonId" data-lightbox="true" href="images/11-client03-logon-match.png"><img alt="CLIENT03 4624 Type 3 Kerberos Administrator session matching the Sysmon process LogonId" loading="lazy" src="images/11-client03-logon-match.png"/></a><figcaption>CLIENT03 4624 Type 3 Kerberos Administrator session matching the Sysmon process LogonId<span>↗ Enlarge</span></figcaption></figure>
+<p>The matching Logon IDs on the <strong>same host</strong> link the successful Kerberos Administrator network logon to the <code>wsmprovhost.exe</code> process. Together with the process ancestry and the preceding HTTP-SPN S4U activity, this is strong evidence of WinRM/PowerShell remote administration on CLIENT03 as Administrator.</p>
+<p><strong>Attribution limit:</strong> The destination 4624 event has no source IP. Correlation strongly supports the preceding CLIENT02 attack sequence, but that particular authentication record does not independently prove CLIENT02 was the source. Identifying an IP in a 4769 event is not equivalent to matching the source IP of the eventual destination logon.</p>
+<hr/>
+<h2 id="11-forged-tickets-and-access-to-the-parent-domain">11. Forged tickets and access to the parent domain</h2>
+<p>The attacker later ran <strong><code>Better-to-trust.exe</code></strong> as HelpDesk on CLIENT02. Executable metadata identifies the renamed binary as <strong>SafetyKatz</strong> (<code>OriginalFileName=BetterSafetyKatz.exe</code>), a loader providing Mimikatz functionality.</p>
+<p>A search for the output ticket file extension retrieved three process creation events:</p>
+<pre data-lang="SPL"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-spl">index=folks "*.kirbi"
+| table _time host EventCode Image OriginalFileName CommandLine User
+| sort _time
+</code></pre>
+<figure class="evidence"><a aria-label="Open full-size evidence screenshot: Sysmon process command line containing the trust-test2.kirbi ticket filename" data-lightbox="true" href="images/12-kirbi-artifacts.png"><img alt="Sysmon process command line containing the trust-test2.kirbi ticket filename" loading="lazy" src="images/12-kirbi-artifacts.png"/></a><figcaption>Sysmon process command line containing the trust-test2.kirbi ticket filename<span>↗ Enlarge</span></figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Time, 10 May</th>
+<th>Ticket filename in command</th>
+<th>Crypto option</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>07:36:07</td>
+<td><strong><code>trust_tgt.kirbi</code></strong></td>
+<td>AES256</td>
+</tr>
+<tr>
+<td>07:44:42</td>
+<td><strong><code>trust_tgt.kirbi</code></strong></td>
+<td>RC4</td>
+</tr>
+<tr>
+<td>07:51:24</td>
+<td><code>trust-test2.kirbi</code></td>
+<td>RC4</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first command includes:</p>
+<pre data-lang="TEXT"><button aria-label="Copy code to clipboard" class="copy-code" type="button">Copy</button><code class="language-text">"Better-to-trust.exe" "kerberos::golden
+/user:Administrator
+/domain:Abdullah.Ali.Alhakami
+/sid:S-1-5-21-1316629931-576095952-2750207263
+/sids:S-1-5-21-2314577697-1335098093-3289815499-519
+/aes256:&lt;key&gt; /service:krbtgt
+/target:Ali.Alhakami
+/ticket:trust_tgt.kirbi"
+</code></pre>
+<p><em>Arguments shown as a readable excerpt; the original log preserves the full command string and some options lack a slash in the recorded text.</em></p>
+<h3 id="why-trusts-sids-and-ticket-files-matter">Why trusts, SIDs and ticket files matter</h3>
+<p>The command invokes <strong><code>kerberos::golden</code></strong> for ticket forging, specifying <code>Administrator</code>, the child-domain identity context (<code>Abdullah.Ali.Alhakami</code>), an additional SID ending in <strong><code>-519</code></strong> (the well-known Enterprise Admins RID), and the parent-domain target <strong><code>Ali.Alhakami</code></strong>. In a multi-domain forest, trust relationships permit cross-domain Kerberos authentication; forged ticket material and injected SIDs can be used in attempts to gain privileges across those trust boundaries.</p>
+<p>A <strong><code>.kirbi</code></strong> file is a commonly used representation of Kerberos ticket material. <code>/ticket:</code> specifies a desired output filename; <code>/ptt</code> requests ticket import into a session. The command lines establish <strong>ticket-forging attempts and the specified output names</strong>, not independently that files were written, accepted by the parent DC, or used to access it.</p>
+<p>The primary filename associated with the observed parent-domain targeting commands is <strong><code>trust_tgt.kirbi</code></strong>. A separate later attempt specifies <strong><code>trust-test2.kirbi</code></strong>, which should be retained in the chronology rather than conflated with the earlier output.</p>
+<hr/>
+<h2 id="12-investigation-results-and-remaining-uncertainties">12. Investigation results and remaining uncertainties</h2>
+<h3 id="findings-at-a-glance">Findings at a glance</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Investigation objective</th>
+<th>Evidence-based result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial suspicious Type 9 / <code>seclogo</code> account</td>
+<td><strong><code>Abdullah-work\HelpDesk</code></strong></td>
+</tr>
+<tr>
+<td>Local compromised machine</td>
+<td><strong><code>CLIENT02</code></strong></td>
+</tr>
+<tr>
+<td>AD enumeration tool</td>
+<td><strong>BloodHound</strong> (<code>Invoke-BloodHound</code> script block)</td>
+</tr>
+<tr>
+<td>Suspected vulnerable service binary</td>
+<td><code>C:\Program Files\Basic Monitoring\Automate-Basic-Monitoring.exe</code> — registered service name <strong>not verified</strong></td>
+</tr>
+<tr>
+<td>SYSTEM-level path-interception image / SHA-256</td>
+<td><code>C:\program.exe</code> / <strong><code>8ACC5D98…555BD2</code></strong> on 10 May</td>
+</tr>
+<tr>
+<td><code>fun.exe</code> first file creation</td>
+<td><strong>2023-05-10 05:08:57</strong> (reported minute: <strong>05:08</strong>)</td>
+</tr>
+<tr>
+<td>DCSync command</td>
+<td><strong><code>lsadump::dcsync /user:Abdullah-work\Administrator</code></strong></td>
+</tr>
+<tr>
+<td>Renamed <code>fun.exe</code></td>
+<td><strong><code>mimikatz.exe</code></strong></td>
+</tr>
+<tr>
+<td>Earliest observed AES256 <code>asktgt</code> identity</td>
+<td><strong>Mohammed</strong> (<code>facca59a…54d379</code>)</td>
+</tr>
+<tr>
+<td>Kerberos SPN targeting CLIENT03</td>
+<td><strong><code>http/Client03</code></strong></td>
+</tr>
+<tr>
+<td>CLIENT03 remote-session host process</td>
+<td><strong><code>wsmprovhost.exe</code></strong></td>
+</tr>
+<tr>
+<td><code>it-support</code>-related new credentials logon</td>
+<td><strong>Type 9</strong> (local session account: HelpDesk)</td>
+</tr>
+<tr>
+<td>Parent-domain ticket output specified</td>
+<td><strong><code>trust_tgt.kirbi</code></strong>; later attempt: <code>trust-test2.kirbi</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="what-remains-unverified">What remains unverified</h3>
+<ul>
+<li><strong>Service identification:</strong> The recorded service binary path does not expose a registered service <em>name</em>; no service configuration record confirming that name was supplied.</li>
+<li><strong>PowerShell enumeration:</strong> The <code>Invoke-BloodHound</code> definition was logged; successful collection was not independently confirmed.</li>
+<li><strong>DCSync outcome:</strong> Mimikatz was launched with the command, but replication success and returned secrets were not shown.</li>
+<li><strong>Credential origin:</strong> AES256 keys were used in process arguments; how the operator obtained them is not established.</li>
+<li><strong>Lateral-movement source:</strong> The CLIENT03 logon-to-process match is firm, but its 4624 <code>IpAddress</code> is missing.</li>
+<li><strong>Parent-domain access:</strong> Ticket-forging commands are visible; creation and successful use of a <code>.kirbi</code> ticket against <code>ALI</code> were not demonstrated.</li>
+</ul>
+<p>The most reusable correlation in this case is <strong>CLIENT03 Security 4624 <code>TargetLogonId</code> ↔ Sysmon 1 <code>LogonId</code></strong>. It links authentication to the process executing in the authenticated session. Process GUIDs similarly connect child processes and file writes; file hashes distinguish binary contents; and cross-host Kerberos events supply additional context without eliminating every attribution gap.</p>
+<hr/>
+<h2 id="13-technical-references">13. Technical references</h2>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4624">Microsoft — Windows Security Event 4624 (logon types)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4768">Microsoft — Windows Security Event 4768 (Kerberos TGT)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4769">Microsoft — Windows Security Event 4769 (Kerberos service ticket)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events">Microsoft Sysinternals — Sysmon events</a></li>
+<li><a href="https://github.com/SpecterOps/BloodHound-Legacy/wiki/Data-Collector">SpecterOps — BloodHound legacy collector reference</a></li>
+<li><a href="https://github.com/GhostPack/Rubeus">GhostPack — Rubeus</a></li>
+<li><a href="https://attack.mitre.org/techniques/T1574/009/">MITRE ATT&amp;CK T1574.009 — Unquoted path interception</a></li>
+<li><a href="https://attack.mitre.org/techniques/T1003/006/">MITRE ATT&amp;CK T1003.006 — DCSync</a></li>
+<li><a href="https://attack.mitre.org/techniques/T1558/001/">MITRE ATT&amp;CK T1558.001 — Golden Ticket</a></li>
+<li><a href="references/windows-ad-tools.md">Windows / AD tool recognition reference</a></li>
+</ul>
+</article>
+<footer class="backtop"><span>FalconEye · Windows and Active Directory investigation</span><a href="#top">↑ Back to top</a></footer>
+</div></main>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Evidence screenshot enlarged"><button type="button" aria-label="Close" id="close-lightbox">×</button><img alt="" src=""></div>
+<div id="toast" role="status">Copied</div>
+<script>
+(()=>{
+const toast=document.querySelector('#toast');let toastTimer;
+function flash(){toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),1700)}
+document.querySelectorAll('pre .copy-code').forEach(b=>b.addEventListener('click',async()=>{
+ const code=b.parentElement.querySelector('code');try{await navigator.clipboard.writeText(code.textContent);b.textContent='Copied';flash();setTimeout(()=>b.textContent='Copy',1800)}catch(e){b.textContent='Select text';}}));
+const lb=document.getElementById('lightbox'),big=lb.querySelector('img');
+function close(){lb.classList.remove('open');big.src='';document.body.style.overflow=''}
+document.querySelectorAll('a[data-lightbox]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();big.src=a.href;big.alt=a.querySelector('img')?.alt||'';lb.classList.add('open');document.body.style.overflow='hidden'}));
+lb.addEventListener('click',close);document.getElementById('close-lightbox').addEventListener('click',close);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+document.getElementById('print').addEventListener('click',()=>window.print());
+document.getElementById('mobile-jump').addEventListener('change',e=>{if(e.target.value)location.hash=e.target.value});
+const nav=[...document.querySelectorAll('.nav-link')];const o=new IntersectionObserver(entries=>{for(const e of entries){if(e.isIntersecting)nav.forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id))}},{rootMargin:'-15% 0px -76% 0px'});
+document.querySelectorAll('article h2[id]').forEach(h=>o.observe(h));
+})();
+</script></body></html>
