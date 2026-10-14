@@ -4,6 +4,9 @@ Technical walkthroughs of security investigations and lab exercises. The notes c
 
 ## Investigations
 
+- **[Volatility Traces — Windows memory forensics](volatility-traces/)**  
+  CyberDefenders · Volatility 3, process-tree reconstruction, terminated-process recovery, persistence leads, Microsoft Defender exclusions, and ATT&CK mapping.
+
 - **[FalconEye — Active Directory compromise investigation](falconeye/README.md)**  
   CyberDefenders · Splunk, Windows/Sysmon telemetry, BloodHound, service-path hijacking, Rubeus/Mimikatz, Kerberos delegation, WinRM, and ticket forging.
 
